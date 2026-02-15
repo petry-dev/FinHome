@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="FinHome.Api/FinHome.Api.csproj" />
+  <Project Path="FinHome.Aplicacao/FinHome.Aplicacao.csproj" />
+  <Project Path="FinHome.Dominio/FinHome.Dominio.csproj" />
+  <Project Path="FinHome.Infra/FinHome.Infra.csproj" />
+</Solution>

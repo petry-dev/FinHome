@@ -1,0 +1,46 @@
+# .NET / Visual Studio
+bin/
+obj/
+out/
+Release/
+x64/
+x86/
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+
+# Banco de dados locais
+*.db
+*.db-shm
+*.db-wal
+
+# Node / React
+node_modules/
+dist/
+dist-ssr/
+*.local
+.eslintcache
+.stylelintcache
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+postgres_data/
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Configurações locais e segredos
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+appsettings.Development.json

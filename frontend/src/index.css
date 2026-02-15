@@ -1,0 +1,183 @@
+:root {
+  --primary: #8257e5;
+  --primary-hover: #9466ff;
+  --danger: #e55039;
+  --success: #00b894;
+  --text-primary: #1c1e21;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
+  background-image: url('/fundo.jpg'); 
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =========================================
+   ESTILO DOS CARDS
+   ========================================= */
+
+.card {
+    background: transparent;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 30px;
+}
+
+.card h2 {
+    background: #1a1a2e;
+    color: #ffffff;
+    padding: 20px 25px;
+    margin: 0;
+    font-size: 1.3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 4px solid var(--primary);
+}
+
+.card-body {
+    padding: 0;
+    /* Define fundo sólido para garantir legibilidade sobre a imagem de background */
+    background: #ffffff;
+}
+
+/* =========================================
+   ESTILO DAS TABELAS
+   ========================================= */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead tr {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+}
+
+thead th {
+    text-align: left;
+    color: #495057;
+    padding: 15px 25px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+tbody tr {
+    background: #ffffff;
+    border-bottom: 1px solid #f0f2f5;
+    transition: background 0.2s;
+}
+
+tbody tr:hover {
+    background: #f8f9fa;
+}
+
+tbody td {
+    padding: 15px 25px;
+    color: #444;
+    vertical-align: middle;
+}
+
+/* =========================================
+   ESTILO DOS MODAIS
+   ========================================= */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  position: fixed;
+  top: 0; bottom: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  color: #333;
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Reseta estilos do h2 global (.card h2) para evitar conflito de tema.
+   Garante que o modal mantenha visual limpo independente do estilo do dashboard.
+*/
+.modal-content h2 {
+    background: transparent !important;
+    color: #333 !important;
+    padding: 0 0 15px 0 !important;
+    margin: 0 0 20px 0 !important;
+    border-bottom: 1px solid #eee !important;
+    display: block !important;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* =========================================
+   BOTÕES E INPUTS
+   ========================================= */
+.btn-novo {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.btn-novo:hover { background: var(--primary-hover); }
+
+input, select {
+    background: #f8f9fa;
+    border: 1px solid #ced4da;
+    color: #495057;
+    padding: 12px;
+    border-radius: 6px;
+    width: 100%;
+    margin-bottom: 15px;
+    font-size: 1rem;
+}
+input:focus, select:focus {
+    background: #fff;
+    border-color: var(--primary);
+    outline: none;
+}
+button { cursor: pointer; }
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    transform: scale(1.2);
+    opacity: 0.8;
+}
+
+.btn-edit { color: var(--primary); }
+.btn-delete { color: var(--danger); }
