@@ -1,61 +1,71 @@
 using DotNetEnv;
-using FinHome.Infra.Contexto;
-using FinHome.Infra.Repositorios;
-using FinHome.Dominio.Interfaces;
+using FinHome.Application.Behaviors;
+using FinHome.Application.Validators;
+using FinHome.Domain.Interfaces;
+using FinHome.Infrastructure.Data;
+using FinHome.Infrastructure.Repositories;
+using FluentValidation;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var diretorioRaiz = Directory.GetParent(Directory.GetCurrentDirectory())?.Parent?.FullName;
-var caminhoEnv = Path.Combine(diretorioRaiz ?? "", ".env");
+// Load .env file when running outside of a container that already injects secrets
+var envPath = Path.Combine(
+    Directory.GetParent(Directory.GetCurrentDirectory())?.Parent?.FullName ?? "",
+    ".env");
+if (File.Exists(envPath)) Env.Load(envPath);
 
-// Carrega variáveis locais para facilitar execução fora de ambientes que já injetam secrets (ex.: container/CI)
-if (File.Exists(caminhoEnv)) Env.Load(caminhoEnv);
-
+// Connection string: prefer DefaultConnection, fall back to individual env vars
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-// Fallback para montar a string de conexão via variáveis de ambiente quando não há DefaultConnection configurada
 if (string.IsNullOrEmpty(connectionString))
 {
-    var dbName = Environment.GetEnvironmentVariable("POSTGRES_DB");
-    var dbUser = Environment.GetEnvironmentVariable("POSTGRES_USER");
-    var dbPass = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD");
-    var dbPort = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5432";
-    var dbHost = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "localhost";
-    connectionString = $"Host={dbHost};Port={dbPort};Database={dbName};Username={dbUser};Password={dbPass}";
+    var host = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "localhost";
+    var port = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5432";
+    var db   = Environment.GetEnvironmentVariable("POSTGRES_DB");
+    var user = Environment.GetEnvironmentVariable("POSTGRES_USER");
+    var pass = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD");
+    connectionString = $"Host={host};Port={port};Database={db};Username={user};Password={pass}";
 }
 
-builder.Services.AddDbContext<AppDbContext>(opcoes => opcoes.UseNpgsql(connectionString));
-
-builder.Services.AddScoped<IPessoaRepositorio, PessoaRepositorio>();
-builder.Services.AddScoped<ICategoriaRepositorio, CategoriaRepositorio>();
-builder.Services.AddScoped<ITransacaoRepositorio, TransacaoRepositorio>();
-
-// Política ampla para permitir consumo do front durante o desenvolvimento
-builder.Services.AddCors(opcoes =>
+builder.Services.AddDbContext<AppDbContext>(o =>
 {
-    opcoes.AddPolicy("PermitirTudo", politica =>
-    {
-        politica.AllowAnyOrigin()
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-    });
+    o.UseNpgsql(connectionString);
+    // Enable sensitive data logging only in development to aid debugging
+    if (builder.Environment.IsDevelopment())
+        o.EnableSensitiveDataLogging().LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Information);
 });
 
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        // Evita erro de serialização por referência circular (ex.: Transacao -> Pessoa -> Transacoes)
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    });
+// Repositories
+builder.Services.AddScoped<IPersonRepository, PersonRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
+// MediatR — discovers all handlers in Application assembly
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(CreatePersonValidator).Assembly));
+
+// FluentValidation — registers all validators in Application assembly
+builder.Services.AddValidatorsFromAssembly(typeof(CreatePersonValidator).Assembly);
+
+// Validation pipeline: automatically validates every command before the handler runs
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+builder.Services.AddCors(o => o.AddPolicy("AllowAll", p =>
+    p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(o =>
+{
+    o.SwaggerDoc("v1", new() { Title = "FinHome API", Version = "v1" });
+});
 
 var app = builder.Build();
 
-app.UseCors("PermitirTudo");
+app.UseMiddleware<FinHome.Api.Middleware.GlobalExceptionMiddleware>();
+
+app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {
@@ -65,3 +75,6 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.Run();
+
+// Needed for integration test WebApplicationFactory
+public partial class Program { }
