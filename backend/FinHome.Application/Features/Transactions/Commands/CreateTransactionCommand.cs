@@ -68,13 +68,10 @@ public sealed class CreateTransactionCommandHandler
 
         await _transactionRepo.AddAsync(transaction, ct);
 
-        var dto = await _transactionRepo.Query()
-            .AsNoTracking()
-            .Where(t => t.Id == transaction.Id)
-            .Select(t => new TransactionDto(
-                t.Id, t.Description, t.Amount, t.Date, t.Type,
-                t.PersonId, t.Person!.Name, t.CategoryId, t.Category!.Name))
-            .FirstAsync(ct);
+        // person and category already loaded above — no additional DB round-trip needed
+        var dto = new TransactionDto(
+            transaction.Id, transaction.Description, transaction.Amount, transaction.Date,
+            transaction.Type, person.Id, person.Name, category.Id, category.Name);
 
         return Result<TransactionDto>.Success(dto);
     }

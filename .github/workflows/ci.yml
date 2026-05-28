@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-test:
+    name: Build & Test (.NET)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: finhome_test
+          POSTGRES_USER: finhome
+          POSTGRES_PASSWORD: finhome
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: finhome_test
+      POSTGRES_USER: finhome
+      POSTGRES_PASSWORD: finhome
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore backend/backend.slnx
+
+      - name: Build
+        run: dotnet build backend/backend.slnx --no-restore --configuration Release
+
+      - name: Run unit tests
+        run: dotnet test backend/FinHome.UnitTests --no-build --configuration Release --verbosity normal
+
+      - name: Run integration tests
+        run: dotnet test backend/FinHome.IntegrationTests --no-build --configuration Release --verbosity normal
+        continue-on-error: false
