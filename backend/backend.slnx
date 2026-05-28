@@ -3,4 +3,6 @@
   <Project Path="FinHome.Application/FinHome.Application.csproj" />
   <Project Path="FinHome.Domain/FinHome.Domain.csproj" />
   <Project Path="FinHome.Infrastructure/FinHome.Infrastructure.csproj" />
+  <Project Path="FinHome.UnitTests/FinHome.UnitTests.csproj" />
+  <Project Path="FinHome.IntegrationTests/FinHome.IntegrationTests.csproj" />
 </Solution>
