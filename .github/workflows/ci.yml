@@ -11,28 +11,6 @@ jobs:
     name: Build & Test (.NET)
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: finhome_test
-          POSTGRES_USER: finhome
-          POSTGRES_PASSWORD: finhome
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      POSTGRES_HOST: localhost
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: finhome_test
-      POSTGRES_USER: finhome
-      POSTGRES_PASSWORD: finhome
-
     steps:
       - uses: actions/checkout@v4
 

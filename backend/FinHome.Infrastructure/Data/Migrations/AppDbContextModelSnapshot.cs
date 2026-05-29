@@ -4,7 +4,6 @@ using FinHome.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -18,25 +17,22 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
 #pragma warning disable 612, 618
         modelBuilder
             .HasAnnotation("ProductVersion", "8.0.0")
-            .HasAnnotation("Relational:MaxIdentifierLength", 63);
-
-        NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+            .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
         modelBuilder.Entity("FinHome.Domain.Entities.Category", b =>
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
-                .HasColumnType("integer");
-
-            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                .HasColumnType("int")
+                .HasAnnotation("SqlServer:Identity", "1, 1");
 
             b.Property<string>("Name")
                 .IsRequired()
                 .HasMaxLength(400)
-                .HasColumnType("character varying(400)");
+                .HasColumnType("nvarchar(400)");
 
             b.Property<int>("Purpose")
-                .HasColumnType("integer");
+                .HasColumnType("int");
 
             b.HasKey("Id");
 
@@ -50,17 +46,16 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
-                .HasColumnType("integer");
-
-            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                .HasColumnType("int")
+                .HasAnnotation("SqlServer:Identity", "1, 1");
 
             b.Property<int>("Age")
-                .HasColumnType("integer");
+                .HasColumnType("int");
 
             b.Property<string>("Name")
                 .IsRequired()
                 .HasMaxLength(200)
-                .HasColumnType("character varying(200)");
+                .HasColumnType("nvarchar(200)");
 
             b.HasKey("Id");
 
@@ -74,30 +69,29 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
-                .HasColumnType("integer");
-
-            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                .HasColumnType("int")
+                .HasAnnotation("SqlServer:Identity", "1, 1");
 
             b.Property<decimal>("Amount")
                 .HasPrecision(18, 2)
-                .HasColumnType("numeric(18,2)");
+                .HasColumnType("decimal(18,2)");
 
             b.Property<int>("CategoryId")
-                .HasColumnType("integer");
+                .HasColumnType("int");
 
             b.Property<DateTime>("Date")
-                .HasColumnType("timestamp with time zone");
+                .HasColumnType("datetime2");
 
             b.Property<string>("Description")
                 .IsRequired()
                 .HasMaxLength(400)
-                .HasColumnType("character varying(400)");
+                .HasColumnType("nvarchar(400)");
 
             b.Property<int>("PersonId")
-                .HasColumnType("integer");
+                .HasColumnType("int");
 
             b.Property<int>("Type")
-                .HasColumnType("integer");
+                .HasColumnType("int");
 
             b.HasKey("Id");
 

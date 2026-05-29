@@ -29,10 +29,10 @@ Dependency rule: `Domain ← Application ← Infrastructure ← Api`. Never the 
 | Layer | Technology | Version |
 |-------|-----------|---------|
 | Backend runtime | .NET | 8.0 |
-| ORM | Entity Framework Core + Npgsql | 8.0 |
+| ORM | Entity Framework Core + SQL Server | 8.0 |
 | CQRS dispatcher | MediatR | 12.3 |
 | Validation | FluentValidation | 11.9 |
-| Database | PostgreSQL | 16-alpine |
+| Database | SQL Server | 2022 |
 | Frontend | React + TypeScript + Vite | 19 / 5.9 / 7 |
 | Styling | Tailwind CSS | 4 |
 | HTTP client | Axios | 1.13 |
