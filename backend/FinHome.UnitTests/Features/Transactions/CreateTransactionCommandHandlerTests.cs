@@ -123,4 +123,33 @@ public class CreateTransactionCommandHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value!.PersonName.Should().Be("Alice");
     }
+
+    [Fact]
+    public async Task Handle_Exactly18YearsOld_CanRegisterIncome()
+    {
+        SetupPerson(18);
+        SetupCategory(PurposeType.Both);
+
+        _txRepoMock.Setup(r => r.AddAsync(It.IsAny<Transaction>(), default))
+            .Callback<Transaction, CancellationToken>((t, _) => t.Id = 1)
+            .Returns(Task.CompletedTask);
+
+        var cmd = new CreateTransactionCommand("Salary", 1000, DateTime.UtcNow, TransactionType.Income, 1, 1);
+        var result = await _handler.Handle(cmd, default);
+
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_Age17TriesIncome_ReturnsFailure()
+    {
+        SetupPerson(17);
+        SetupCategory(PurposeType.Both);
+
+        var cmd = new CreateTransactionCommand("Salary", 500, DateTime.UtcNow, TransactionType.Income, 1, 1);
+        var result = await _handler.Handle(cmd, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("under 18");
+    }
 }
