@@ -28,8 +28,8 @@ Dependency rule: `Domain ← Application ← Infrastructure ← Api`. Never the 
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Backend runtime | .NET | 10.0 |
-| ORM | Entity Framework Core + Npgsql | 10.0 |
+| Backend runtime | .NET | 8.0 |
+| ORM | Entity Framework Core + Npgsql | 8.0 |
 | CQRS dispatcher | MediatR | 12.3 |
 | Validation | FluentValidation | 11.9 |
 | Database | PostgreSQL | 16-alpine |
