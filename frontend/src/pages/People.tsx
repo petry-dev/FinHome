@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Modal } from '../components/Modal';
 import { EditButton, DeleteButton } from '../components/Buttons';
+import { parseProblemDetail } from '../services/api';
 
 interface Person { id: number; name: string; age: number; }
 
@@ -11,28 +12,46 @@ export function PeoplePage() {
   const [editing, setEditing] = useState<Person | null>(null);
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function load() {
     api.get('/api/people?pageSize=100').then(res => setPeople(res.data.items));
   }
   useEffect(() => { load(); }, []);
 
-  function openNew() { setEditing(null); setName(''); setAge(''); setIsModalOpen(true); }
-  function openEdit(p: Person) { setEditing(p); setName(p.name); setAge(p.age.toString()); setIsModalOpen(true); }
+  function openNew() { setEditing(null); setName(''); setAge(''); setError(null); setIsModalOpen(true); }
+  function openEdit(p: Person) { setEditing(p); setName(p.name); setAge(p.age.toString()); setError(null); setIsModalOpen(true); }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = { name, age: parseInt(age) };
-    if (editing) await api.put(`/api/people/${editing.id}`, payload);
-    else await api.post('/api/people', payload);
-    setIsModalOpen(false);
-    load();
+    if (!name.trim()) { setError('Name is required.'); return; }
+    const parsedAge = parseInt(age);
+    if (!age || isNaN(parsedAge) || parsedAge < 0) { setError('Age must be a non-negative number.'); return; }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const payload = { name: name.trim(), age: parsedAge };
+      if (editing) await api.put(`/api/people/${editing.id}`, payload);
+      else await api.post('/api/people', payload);
+      setIsModalOpen(false);
+      load();
+    } catch (err) {
+      setError(parseProblemDetail(err));
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function handleDelete(id: number) {
     if (confirm('Delete person and all their transactions?')) {
-      await api.delete(`/api/people/${id}`);
-      load();
+      try {
+        await api.delete(`/api/people/${id}`);
+        load();
+      } catch (err) {
+        alert(parseProblemDetail(err));
+      }
     }
   }
 
@@ -70,9 +89,16 @@ export function PeoplePage() {
 
       <Modal isOpen={isModalOpen} title={editing ? 'Edit Person' : 'New Person'} onClose={() => setIsModalOpen(false)}>
         <form onSubmit={handleSubmit}>
+          {error && (
+            <div style={{ background: '#ffebee', color: '#c62828', padding: '10px', borderRadius: '4px', marginBottom: '10px', fontSize: '0.9rem' }}>
+              {error}
+            </div>
+          )}
           <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} maxLength={200} />
-          <input placeholder="Age" type="number" value={age} onChange={e => setAge(e.target.value)} />
-          <button type="submit" className="btn-novo" style={{ width: '100%', marginTop: '10px' }}>Save</button>
+          <input placeholder="Age" type="number" value={age} onChange={e => setAge(e.target.value)} min={0} />
+          <button type="submit" className="btn-novo" style={{ width: '100%', marginTop: '10px' }} disabled={isLoading}>
+            {isLoading ? 'Saving...' : 'Save'}
+          </button>
         </form>
       </Modal>
     </div>
