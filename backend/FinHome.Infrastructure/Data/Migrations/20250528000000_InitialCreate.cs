@@ -1,6 +1,5 @@
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -16,10 +15,10 @@ public partial class InitialCreate : Migration
             name: "Categories",
             columns: table => new
             {
-                Id = table.Column<int>(type: "integer", nullable: false)
-                    .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                Name = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: false),
-                Purpose = table.Column<int>(type: "integer", nullable: false)
+                Id = table.Column<int>(type: "int", nullable: false)
+                    .Annotation("SqlServer:Identity", "1, 1"),
+                Name = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false),
+                Purpose = table.Column<int>(type: "int", nullable: false)
             },
             constraints: table =>
             {
@@ -30,10 +29,10 @@ public partial class InitialCreate : Migration
             name: "People",
             columns: table => new
             {
-                Id = table.Column<int>(type: "integer", nullable: false)
-                    .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                Age = table.Column<int>(type: "integer", nullable: false)
+                Id = table.Column<int>(type: "int", nullable: false)
+                    .Annotation("SqlServer:Identity", "1, 1"),
+                Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                Age = table.Column<int>(type: "int", nullable: false)
             },
             constraints: table =>
             {
@@ -44,14 +43,14 @@ public partial class InitialCreate : Migration
             name: "Transactions",
             columns: table => new
             {
-                Id = table.Column<int>(type: "integer", nullable: false)
-                    .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                Description = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: false),
-                Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                Type = table.Column<int>(type: "integer", nullable: false),
-                PersonId = table.Column<int>(type: "integer", nullable: false),
-                CategoryId = table.Column<int>(type: "integer", nullable: false)
+                Id = table.Column<int>(type: "int", nullable: false)
+                    .Annotation("SqlServer:Identity", "1, 1"),
+                Description = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false),
+                Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                Type = table.Column<int>(type: "int", nullable: false),
+                PersonId = table.Column<int>(type: "int", nullable: false),
+                CategoryId = table.Column<int>(type: "int", nullable: false)
             },
             constraints: table =>
             {

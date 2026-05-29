@@ -3,26 +3,20 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Testcontainers.PostgreSql;
+using Testcontainers.MsSql;
 
 namespace FinHome.IntegrationTests;
 
-/// <summary>
-/// Shared test fixture that spins up a real PostgreSQL container once per test collection.
-/// WebApplicationFactory replaces the connection string so the API runs against the container.
-/// </summary>
 public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
-        .WithDatabase("finhome_test")
-        .WithUsername("finhome")
-        .WithPassword("finhome")
+    private readonly MsSqlContainer _sqlServer = new MsSqlBuilder()
+        .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+        .WithPassword("FinhomeTest@123")
         .Build();
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        await _sqlServer.StartAsync();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -35,9 +29,9 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             if (descriptor is not null)
                 services.Remove(descriptor);
 
-            // Register DbContext pointing to the Testcontainer PostgreSQL
+            // Register DbContext pointing to the Testcontainer SQL Server
             services.AddDbContext<AppDbContext>(options =>
-                options.UseNpgsql(_postgres.GetConnectionString()));
+                options.UseSqlServer(_sqlServer.GetConnectionString()));
 
             // Apply migrations automatically before tests run
             using var scope = services.BuildServiceProvider().CreateScope();
@@ -48,6 +42,6 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public new async Task DisposeAsync()
     {
-        await _postgres.DisposeAsync();
+        await _sqlServer.DisposeAsync();
     }
 }
