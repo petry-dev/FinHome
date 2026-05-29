@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import api from '../services/api';
+import api, { parseProblemDetail } from '../services/api';
 import type { Transaction } from '../pages/Transactions';
-import { AxiosError } from 'axios';
 
 interface Props {
   currentTransaction: Transaction | null;
@@ -30,6 +29,8 @@ export function TransactionForm({ currentTransaction, onSave, onClose }: Props) 
 
   const [people, setPeople] = useState<SelectOption[]>([]);
   const [categories, setCategories] = useState<SelectOption[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   React.useEffect(() => {
     api.get('/api/people?pageSize=100').then(res => setPeople(res.data.items));
@@ -42,12 +43,21 @@ export function TransactionForm({ currentTransaction, onSave, onClose }: Props) 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.description || !form.amount || !form.personId || !form.categoryId)
-      return alert('Please fill all fields.');
+    if (!form.description || !form.amount || !form.personId || !form.categoryId) {
+      setError('Please fill all fields.');
+      return;
+    }
+    const amount = parseFloat(form.amount);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Amount must be greater than zero.');
+      return;
+    }
 
+    setIsLoading(true);
+    setError(null);
     const payload = {
       description: form.description,
-      amount: parseFloat(form.amount),
+      amount,
       type: parseInt(form.type),
       personId: parseInt(form.personId),
       categoryId: parseInt(form.categoryId),
@@ -62,18 +72,20 @@ export function TransactionForm({ currentTransaction, onSave, onClose }: Props) 
       }
       onSave();
       onClose();
-    } catch (error) {
-      const err = error as AxiosError<{ detail?: string; errors?: Record<string, string[]> }>;
-      const detail = err.response?.data?.detail;
-      const errors = err.response?.data?.errors;
-      if (detail) alert(detail);
-      else if (errors) alert(Object.values(errors).flat().join('\n'));
-      else alert('Error saving transaction. Check the console.');
+    } catch (err) {
+      setError(parseProblemDetail(err));
+    } finally {
+      setIsLoading(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit}>
+      {error && (
+        <div style={{ background: '#ffebee', color: '#c62828', padding: '10px', borderRadius: '4px', marginBottom: '10px', fontSize: '0.9rem' }}>
+          {error}
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <div>
           <label style={{ fontSize: '0.8rem', color: '#aaa' }}>Date</label>
@@ -105,8 +117,8 @@ export function TransactionForm({ currentTransaction, onSave, onClose }: Props) 
         <button type="button" onClick={onClose} style={{ flex: 1, padding: '12px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
           Cancel
         </button>
-        <button type="submit" style={{ flex: 1, padding: '12px', background: '#8257e5', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
-          {currentTransaction ? 'Save Changes' : 'Create Transaction'}
+        <button type="submit" disabled={isLoading} style={{ flex: 1, padding: '12px', background: '#8257e5', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1 }}>
+          {isLoading ? 'Saving...' : (currentTransaction ? 'Save Changes' : 'Create Transaction')}
         </button>
       </div>
     </form>

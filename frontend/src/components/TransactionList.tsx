@@ -11,13 +11,25 @@ interface Props {
 
 export function TransactionList({ onEdit, onDeleteRequest, refreshTrigger }: Props) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/api/transactions?pageSize=50').then(res => setTransactions(res.data.items));
+    setIsLoading(true);
+    api.get('/api/transactions?pageSize=50')
+      .then(res => setTransactions(res.data.items))
+      .finally(() => setIsLoading(false));
   }, [refreshTrigger]);
 
   const fmt = (v: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+
+  if (isLoading) {
+    return (
+      <div className="card-body" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+        Loading transactions...
+      </div>
+    );
+  }
 
   return (
     <div className="card-body">

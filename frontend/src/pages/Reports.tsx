@@ -11,23 +11,37 @@ interface ReportSummary {
 
 export function ReportsPage() {
   const [data, setData] = useState<ReportSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setIsLoading(true);
     api.get('/api/reports/by-person')
       .then(res => setData(res.data))
-      .catch(err => console.error('Error loading report', err));
+      .catch(() => setError('Failed to load report. Please try again.'))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const fmt = (v: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 
-  if (!data) {
+  if (isLoading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
         Loading financial data...
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: '#c62828', background: '#ffebee', borderRadius: '8px', margin: '20px' }}>
+        {error}
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   return (
     <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
