@@ -1,6 +1,6 @@
 # FinHome
 
-A full-stack household financial management system built with **.NET 10**, **Clean Architecture**, **CQRS + MediatR**, and **React + TypeScript**.
+A full-stack household financial management system built with **.NET 8**, **Clean Architecture**, **CQRS + MediatR**, and **React + TypeScript**.
 
 ---
 
@@ -12,7 +12,7 @@ graph TD
     API["FinHome.Api\nControllers · GlobalExceptionMiddleware\nResult → IActionResult"]
     App["FinHome.Application\nCQRS Commands / Queries / Handlers\nResult<T> · FluentValidation pipeline\nPaginatedList<T>"]
     Domain["FinHome.Domain\nPerson · Category · Transaction\nRepository interfaces"]
-    Infra["FinHome.Infrastructure\nEF Core + PostgreSQL\nIEntityTypeConfiguration<T>\nRepositories"]
+    Infra["FinHome.Infrastructure\nEF Core + SQL Server\nIEntityTypeConfiguration<T>\nRepositories"]
 
     Client -->|HTTP + Problem Details| API
     API -->|IMediator.Send| App
@@ -138,7 +138,7 @@ Error responses follow [RFC 7807 Problem Details](https://datatracker.ietf.org/d
 
 ```bash
 cp .env.example .env        # edit credentials if needed
-docker-compose up --build
+docker compose up --build
 ```
 
 | Service | URL |
@@ -150,6 +150,10 @@ docker-compose up --build
 ### Without Docker
 
 ```bash
+# Start SQL Server
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourPassword@123" \
+  -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
+
 # Backend
 cd backend
 dotnet run --project FinHome.Api
@@ -162,11 +166,10 @@ npm install && npm run dev
 ### Environment Variables (`.env`)
 
 ```
-POSTGRES_USER=admin
-POSTGRES_PASSWORD=adminpassword
-POSTGRES_DB=finhomedb
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
+SQL_SERVER_HOST=127.0.0.1
+SQL_SERVER_PORT=1433
+SQL_SERVER_DB=finhomedb
+SQL_SERVER_PASSWORD=YourPassword@123
 ```
 
 ---
@@ -179,9 +182,19 @@ cd backend
 # Unit tests — no external dependencies
 dotnet test FinHome.UnitTests
 
-# Integration tests — requires Docker (Testcontainers spins up PostgreSQL)
+# Integration tests — requires Docker (Testcontainers spins up SQL Server automatically)
 dotnet test FinHome.IntegrationTests
 ```
+
+### End-to-end test script
+
+With the API running, run the PowerShell script to validate all endpoints and business rules:
+
+```powershell
+.\e2e-test.ps1 -BaseUrl "http://localhost:5000"
+```
+
+Covers 36 scenarios: CRUD, business rules, cascade delete, reports and error responses.
 
 ---
 
@@ -189,7 +202,7 @@ dotnet test FinHome.IntegrationTests
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request to `main`:
 
-1. **Backend**: restore → build → unit tests → integration tests (PostgreSQL service container)
+1. **Backend**: restore → build → unit tests → integration tests (Testcontainers manages SQL Server)
 2. **Frontend**: `npm ci` → `npm run build`
 
 ---
@@ -222,13 +235,14 @@ FinHome/
 │   │   ├── Controllers/      PeopleController, CategoriesController, TransactionsController, ReportsController
 │   │   ├── Extensions/       ResultExtensions (Result → IActionResult)
 │   │   └── Middleware/       GlobalExceptionMiddleware
-│   ├── FinHome.UnitTests/
-│   └── FinHome.IntegrationTests/
+│   ├── FinHome.UnitTests/    68 unit tests
+│   └── FinHome.IntegrationTests/  16 integration tests
 ├── frontend/
 │   └── src/
 │       ├── components/       TransactionForm, TransactionList, Buttons, Modal
 │       ├── pages/            PeoplePage, CategoriesPage, TransactionsPage, ReportsPage
 │       └── services/         api.ts (Axios + parseProblemDetail)
+├── e2e-test.ps1              End-to-end test script (36 scenarios)
 ├── docker-compose.yml
 └── .github/workflows/ci.yml
 ```
