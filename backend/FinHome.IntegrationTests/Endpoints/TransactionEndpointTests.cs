@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FinHome.Application.Features.People;
+using FinHome.Application.Features.Categories;
 using FinHome.Application.Features.Transactions;
 
 namespace FinHome.IntegrationTests.Endpoints;
@@ -16,15 +18,15 @@ public class TransactionEndpointTests : IClassFixture<ApiFactory>
     private async Task<int> CreatePersonAsync(string name = "Test Person", int age = 30)
     {
         var r = await _client.PostAsJsonAsync("/api/people", new { name, age });
-        var p = await r.Content.ReadFromJsonAsync<dynamic>();
-        return (int)p!.id;
+        var p = await r.Content.ReadFromJsonAsync<PersonDto>();
+        return p!.Id;
     }
 
     private async Task<int> CreateCategoryAsync(string name = "Food", int purpose = 2)
     {
         var r = await _client.PostAsJsonAsync("/api/categories", new { name, purpose });
-        var c = await r.Content.ReadFromJsonAsync<dynamic>();
-        return (int)c!.id;
+        var c = await r.Content.ReadFromJsonAsync<CategoryDto>();
+        return c!.Id;
     }
 
     [Fact]
