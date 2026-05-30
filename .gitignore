@@ -1,3 +1,6 @@
+# Local notes
+pendencias.md
+
 # .NET / Visual Studio
 bin/
 obj/
@@ -44,3 +47,7 @@ desktop.ini
 .env.test.local
 .env.production.local
 appsettings.Development.json
+
+# Claude Code — arquivos locais, não compartilhados
+CLAUDE.md
+.claude/settings.local.json
