@@ -62,6 +62,9 @@ builder.Services.AddSwaggerGen(o =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+
 app.UseMiddleware<FinHome.Api.Middleware.GlobalExceptionMiddleware>();
 
 app.UseCors("AllowAll");
