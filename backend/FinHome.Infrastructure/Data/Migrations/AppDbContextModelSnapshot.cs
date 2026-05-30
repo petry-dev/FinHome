@@ -26,9 +26,8 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
-                .HasColumnType("int");
-
-            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                .HasColumnType("int")
+                .HasAnnotation("SqlServer:Identity", "1, 1");
 
             b.Property<string>("Name")
                 .IsRequired()
@@ -50,9 +49,8 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
-                .HasColumnType("int");
-
-            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                .HasColumnType("int")
+                .HasAnnotation("SqlServer:Identity", "1, 1");
 
             b.Property<int>("Age")
                 .HasColumnType("int");
@@ -74,9 +72,8 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<int>("Id")
                 .ValueGeneratedOnAdd()
-                .HasColumnType("int");
-
-            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                .HasColumnType("int")
+                .HasAnnotation("SqlServer:Identity", "1, 1");
 
             b.Property<decimal>("Amount")
                 .HasPrecision(18, 2)
