@@ -1,17 +1,17 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: finhome-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SQL_SERVER_PASSWORD}
+      MSSQL_PID: Express
     ports:
-      - "5432:5432"
+      - "1433:1433"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - sqldata:/var/opt/mssql
 
   api:
     build:
@@ -20,15 +20,14 @@ services:
     container_name: finhome-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - SQL_SERVER_HOST=sqlserver
+      - SQL_SERVER_PORT=1433
+      - SQL_SERVER_DB=${SQL_SERVER_DB}
+      - SQL_SERVER_PASSWORD=${SQL_SERVER_PASSWORD}
     ports:
       - "5000:8080"
     depends_on:
-      - postgres
+      - sqlserver
 
   frontend:
     build:
@@ -38,9 +37,9 @@ services:
     ports:
       - "3000:5173"
     volumes:
-      - ./frontend/src:/app/src # Sincroniza o código para atualizar em tempo real
+      - ./frontend/src:/app/src
     depends_on:
       - api
 
 volumes:
-  pgdata:
+  sqldata:

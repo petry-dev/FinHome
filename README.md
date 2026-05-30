@@ -1,182 +1,248 @@
 # FinHome
 
-FinHome é uma aplicação Full Stack para gestão de gastos residenciais, desenvolvida para controle financeiro de pessoas, categorias e transações, aplicando regras de negócio e consolidação de dados.
-
-O sistema foi construído com foco em arquitetura limpa, validação de domínio e facilidade de integração entre frontend e backend.
+A full-stack household financial management system built with **.NET 8**, **Clean Architecture**, **CQRS + MediatR**, and **React + TypeScript**.
 
 ---
 
-## Galeria da Aplicação
+## Architecture
 
-### 1. Módulo Pessoas
-Gerenciamento completo de pessoas responsáveis pelas movimentações financeiras.
+```mermaid
+graph TD
+    Client["React + TypeScript\n(Vite / Axios)"]
+    API["FinHome.Api\nControllers · GlobalExceptionMiddleware\nResult → IActionResult"]
+    App["FinHome.Application\nCQRS Commands / Queries / Handlers\nResult<T> · FluentValidation pipeline\nPaginatedList<T>"]
+    Domain["FinHome.Domain\nPerson · Category · Transaction\nRepository interfaces"]
+    Infra["FinHome.Infrastructure\nEF Core + SQL Server\nIEntityTypeConfiguration<T>\nRepositories"]
 
-![Pessoas](./assets/pessoas.png)
+    Client -->|HTTP + Problem Details| API
+    API -->|IMediator.Send| App
+    App -->|IRepository| Domain
+    Infra -->|implements| Domain
+```
 
----
-
-### 2. Módulo Categorias
-Criação e classificação de categorias financeiras por finalidade.
-
-![Categorias](./assets/categorias.png)
-
----
-
-### 3. Módulo Transações
-Registro de receitas e despesas com aplicação de regras de negócio.
-
-![Transações](./assets/transacoes.png)
+Dependency rule: `Domain ← Application ← Infrastructure ← Api`. Never the inverse.
 
 ---
 
-### 4. Módulo Relatórios
-Consolidação financeira por pessoa e por categoria.
+## Tech Stack
 
-![Relatórios](./assets/relatorios.png)
-
----
-
-### 5. Documentação da API (Swagger)
-Interface interativa para testes completos da API REST.
-
-![Swagger](./assets/swagger.png)
-
----
-
-### 6. Infraestrutura em Execução (Docker)
-
-Ambiente completo containerizado com Backend, Frontend e PostgreSQL executando simultaneamente.
-
-![Docker Containers](./assets/docker.png)
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Backend runtime | .NET | 8.0 |
+| ORM | Entity Framework Core + SQL Server | 8.0 |
+| CQRS dispatcher | MediatR | 12.3 |
+| Validation | FluentValidation | 11.9 |
+| Database | SQL Server | 2022 |
+| Frontend | React + TypeScript + Vite | 19 / 5.9 / 7 |
+| Styling | Tailwind CSS | 4 |
+| HTTP client | Axios | 1.13 |
+| Unit tests | xUnit + Moq + FluentAssertions | 2.9 / 4.20 / 6.12 |
+| Integration tests | Testcontainers + WebApplicationFactory | 3.10 |
+| Container | Docker + Docker Compose | — |
+| CI | GitHub Actions | — |
 
 ---
 
-## Stack Tecnológica e Versões
+## Design Decisions
 
-| Tecnologia | Versão | Finalidade |
-|-----------|--------|-----------|
-| .NET SDK | 8.0 | Runtime Backend |
-| C# | 12.0 | Linguagem Backend |
-| Entity Framework Core | 8.0.x | ORM e Migrations |
-| PostgreSQL | 15-alpine | Banco de dados |
-| React | 18.x | Interface Web |
-| TypeScript | 5.x | Tipagem estática |
-| Vite | 5.x | Build e hot reload |
-| Docker | 24+ | Containerização |
+### CQRS with MediatR
+Every use case is an isolated `IRequest<T>` + handler. No service class shares state across operations:
+- Each handler is independently testable with a mocked repository
+- `ValidationBehavior<TRequest, TResponse>` runs FluentValidation before every command — no explicit validation calls in controllers or handlers
+- Queries and commands have distinct read/write responsibilities
 
----
+### Result\<T\> Pattern
+Business rule violations return `Result.Failure(message)` instead of throwing exceptions. The unhappy path is explicit in the handler signature; `GlobalExceptionMiddleware` handles only truly unexpected errors.
 
-## Arquitetura e Organização do Projeto
+```csharp
+if (person.Age < 18 && request.Type == TransactionType.Income)
+    return Result<TransactionDto>.Failure("People under 18 cannot register income.");
+```
 
-O projeto adota os princípios da Clean Architecture, organizando o código em camadas concêntricas onde as dependências sempre apontam para o domínio central.
+### Entity Framework Core
 
-### Camada de Domínio — FinHome.Domain
+| Practice | Why |
+|---|---|
+| `AsNoTracking()` on all read queries | Removes change-tracker overhead for read-only operations |
+| Server-side `Select(p => new { Sum(...) })` in reports | EF translates to a single SQL `CASE WHEN` sum; avoids loading every row |
+| `ExecuteDeleteAsync()` instead of `FindAsync` + `Remove` | One SQL `DELETE WHERE` instead of SELECT + DELETE |
+| `IEntityTypeConfiguration<T>` per entity | Schema definition co-located with entity; prevents cluttered `OnModelCreating` |
+| `HasIndex` on `Date`, composite `(Date, Type)` | Report queries filter and sort by these columns |
+| `HasPrecision(18, 2)` on decimal `Amount` | Prevents rounding errors in financial values |
+| `DeleteBehavior.Cascade` explicitly declared | Schema intent visible in code, not hidden in migration diffs |
 
-- Entidades principais: Pessoa, Categoria, Transacao  
-- Interfaces de repositório  
-- Independente de frameworks externos  
+### IQueryable Repository
+Repositories expose `IQueryable<T> Query()` so handlers compose server-side queries:
 
----
-
-### Camada de Aplicação — FinHome.Application
-
-- DTOs de entrada e saída  
-- Serviços de aplicação  
-- Orquestração das regras de negócio  
-- Validações de domínio  
-
----
-
-### Camada de Infraestrutura — FinHome.Infrastructure
-
-- AppDbContext com EF Core  
-- Mapeamentos via Fluent API  
-- Repositórios  
-- Persistência de dados  
+```csharp
+var items = await _repo.Query()
+    .AsNoTracking()
+    .Select(p => new PersonDto(p.Id, p.Name, p.Age))
+    .ToListAsync(ct);
+```
 
 ---
 
-### Camada de API — FinHome.Api
+## Business Rules
 
-- Controllers REST  
-- Injeção de Dependência  
-- Middlewares  
-- Exposição dos endpoints  
-
----
-
-## Regras de Negócio
-
-### Cascade Delete
-Ao excluir uma pessoa, todas as transações vinculadas são removidas automaticamente.
-
-### Validação de Menores de Idade
-Pessoas menores de 18 anos não podem registrar transações do tipo Receita.
-
-### Consistência Categoria x Tipo
-O tipo da transação deve ser compatível com a finalidade da categoria.
-
-### Restrições de Banco de Dados
-- Nome limitado a 200 caracteres  
-- Descrição limitada a 400 caracteres  
+| Rule | Where enforced |
+|------|---------------|
+| People under 18 cannot register income | `CreateTransactionCommandHandler`, `UpdateTransactionCommandHandler` |
+| Transaction type must match category purpose | Same handlers |
+| Deleting a person cascades to their transactions | `TransactionConfiguration` — `DeleteBehavior.Cascade` |
+| Deleting a category cascades to transactions | Same |
+| Name ≤ 200 chars, Description ≤ 400 chars | `IEntityTypeConfiguration<T>` + FluentValidation |
+| Amount must be > 0 | `CreateTransactionValidator`, `UpdateTransactionValidator` |
 
 ---
 
-## Configuração de Ambiente
+## API Endpoints
 
-Este projeto utiliza variáveis de ambiente para configuração do banco de dados.
+```
+GET    /api/people?page=1&pageSize=20
+GET    /api/people/{id}
+POST   /api/people          → 201 Created
+PUT    /api/people/{id}     → 204 No Content
+DELETE /api/people/{id}     → 204 No Content
 
-O arquivo `.env` **não é versionado no repositório** e deve ser criado manualmente.
+GET    /api/categories?page=1&pageSize=20
+POST   /api/categories      → 201 Created
+PUT    /api/categories/{id} → 204 No Content
+DELETE /api/categories/{id} → 204 No Content
 
-### Criar arquivo `.env`
+GET    /api/transactions?page=1&pageSize=20
+GET    /api/transactions/{id}
+POST   /api/transactions    → 201 Created
+PUT    /api/transactions/{id}   → 204 No Content
+DELETE /api/transactions/{id}   → 204 No Content
 
-Na raiz do projeto, crie um arquivo com o seguinte conteúdo:
+GET    /api/reports/by-person
+GET    /api/reports/by-category
+```
+
+Error responses follow [RFC 7807 Problem Details](https://datatracker.ietf.org/doc/html/rfc7807):
+
+```json
+{
+  "title": "Business rule violation",
+  "detail": "People under 18 cannot register income transactions.",
+  "status": 422
+}
+```
+
+---
+
+## Running Locally
+
+### With Docker (recommended)
 
 ```bash
-POSTGRES_USER=admin
-POSTGRES_PASSWORD=adminpassword
-POSTGRES_DB=finhomedb
-POSTGRES_HOST=127.0.0.1
-POSTGRES_PORT=5432
+cp .env.example .env        # edit credentials if needed
+docker compose up --build
 ```
-Essas variáveis são utilizadas pelo Docker Compose e pela API.
 
-## Documentação e Testes da API (Swagger)
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| API | http://localhost:5000 |
+| Swagger | http://localhost:5000/swagger |
 
-O projeto utiliza Swagger (OpenAPI 3.0) como ferramenta central de documentação e testes.
+### Without Docker
 
 ```bash
-http://localhost:5000/swagger
+# Start SQL Server
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourPassword@123" \
+  -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
+
+# Backend
+cd backend
+dotnet run --project FinHome.Api
+
+# Frontend (separate terminal)
+cd frontend
+npm install && npm run dev
 ```
-Com o Swagger é possível:
-* **Testar todos os endpoints**
-* **Validar regras de negócio**
-* **Visualizar os esquemas de dados**
 
-## Visão Geral da API
+### Environment Variables (`.env`)
 
-### Pessoas
-* **GET /pessoas**
-* **POST /pessoas**
-* **PUT /pessoas/{id}**
-* **DELETE /pessoas/{id}**
+```
+SQL_SERVER_HOST=127.0.0.1
+SQL_SERVER_PORT=1433
+SQL_SERVER_DB=finhomedb
+SQL_SERVER_PASSWORD=YourPassword@123
+```
 
-### Categorias
-* **GET /categorias**
-* **POST /categorias**
-* **PUT /categorias/{id}**
-* **DELETE /categorias/{id}**
+---
 
-### Transações
-* **GET /transacoes**
-* **POST /transacoes**
-* **PUT /transacoes/{id}**
-* **DELETE /transacoes/{id}**
+## Running Tests
 
-### Relatórios
-* **GET /relatorios/por-pessoa**
+```bash
+cd backend
 
-## Como Executar o Projeto
+# Unit tests — no external dependencies
+dotnet test FinHome.UnitTests
 
-### Pré-requisitos
-* **Docker Desktop instalado**
+# Integration tests — requires Docker (Testcontainers spins up SQL Server automatically)
+dotnet test FinHome.IntegrationTests
+```
+
+### End-to-end test script
+
+With the API running, run the PowerShell script to validate all endpoints and business rules:
+
+```powershell
+.\e2e-test.ps1 -BaseUrl "http://localhost:5000"
+```
+
+Covers 36 scenarios: CRUD, business rules, cascade delete, reports and error responses.
+
+---
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request to `main`:
+
+1. **Backend**: restore → build → unit tests → integration tests (Testcontainers manages SQL Server)
+2. **Frontend**: `npm ci` → `npm run build`
+
+---
+
+## Project Structure
+
+```
+FinHome/
+├── backend/
+│   ├── FinHome.Domain/
+│   │   ├── Entities/         Person, Category, Transaction
+│   │   ├── Enums/            TransactionType, PurposeType
+│   │   └── Interfaces/       IPersonRepository, ICategoryRepository, ITransactionRepository
+│   ├── FinHome.Application/
+│   │   ├── Behaviors/        ValidationBehavior<TRequest, TResponse>
+│   │   ├── Common/           Result<T>, PaginatedList<T>
+│   │   ├── Features/
+│   │   │   ├── People/       Commands + Queries + PersonDto
+│   │   │   ├── Categories/   Commands + Queries + CategoryDto
+│   │   │   ├── Transactions/ Commands + Queries + TransactionDto
+│   │   │   └── Reports/      GetReportByPersonQuery, GetReportByCategoryQuery
+│   │   └── Validators/       FluentValidation per command
+│   ├── FinHome.Infrastructure/
+│   │   ├── Data/
+│   │   │   ├── AppDbContext.cs
+│   │   │   ├── Configurations/   PersonConfig, CategoryConfig, TransactionConfig
+│   │   │   └── Migrations/
+│   │   └── Repositories/     PersonRepository, CategoryRepository, TransactionRepository
+│   ├── FinHome.Api/
+│   │   ├── Controllers/      PeopleController, CategoriesController, TransactionsController, ReportsController
+│   │   ├── Extensions/       ResultExtensions (Result → IActionResult)
+│   │   └── Middleware/       GlobalExceptionMiddleware
+│   ├── FinHome.UnitTests/    68 unit tests
+│   └── FinHome.IntegrationTests/  16 integration tests
+├── frontend/
+│   └── src/
+│       ├── components/       TransactionForm, TransactionList, Buttons, Modal
+│       ├── pages/            PeoplePage, CategoriesPage, TransactionsPage, ReportsPage
+│       └── services/         api.ts (Axios + parseProblemDetail)
+├── e2e-test.ps1              End-to-end test script (36 scenarios)
+├── docker-compose.yml
+└── .github/workflows/ci.yml
+```
