@@ -11,8 +11,8 @@ Built as a portfolio project to demonstrate senior-level .NET 8 + React patterns
 | Layer | Technology |
 |---|---|
 | Backend | .NET 8, ASP.NET Core, EF Core 8, MediatR 12, FluentValidation 11 |
-| Database | SQL Server 2022 |
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, Axios |
+| Database | PostgreSQL 15 |
+| Frontend | React 19, TypeScript 5, Next.js 16, Tailwind CSS, Axios |
 | Tests | xUnit, Moq, FluentAssertions, Testcontainers |
 | Container | Docker + Docker Compose |
 | CI | GitHub Actions |
@@ -37,9 +37,9 @@ docker compose up --build
 ### Local (no Docker)
 
 ```bash
-# Start SQL Server
-docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourPassword@123" \
-  -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
+# Start PostgreSQL
+docker run -e POSTGRES_PASSWORD=FinhomeLocal@123 -e POSTGRES_DB=finhomedb \
+  -p 5432:5432 -d postgres:15-alpine
 
 # Backend
 cd backend && dotnet run --project FinHome.Api
@@ -56,9 +56,11 @@ dotnet test FinHome.UnitTests        # 68 unit tests — no Docker needed
 dotnet test FinHome.IntegrationTests # 16 integration tests — Docker required
 ```
 
-End-to-end script (requires running stack):
-```powershell
-.\e2e-test.ps1 -BaseUrl "http://localhost:5000"  # 36 scenarios
+End-to-end tests (requires running stack):
+```bash
+cd frontend
+npm run test:e2e        # Playwright — opens browser automatically
+npm run test:e2e:ui     # Playwright UI mode
 ```
 
 ---

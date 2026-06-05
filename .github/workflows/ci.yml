@@ -33,7 +33,7 @@ jobs:
         continue-on-error: false
 
   build-frontend:
-    name: Build (React/TypeScript)
+    name: Build (Next.js/TypeScript)
     runs-on: ubuntu-latest
 
     steps:
