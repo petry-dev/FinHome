@@ -20,16 +20,17 @@ if (File.Exists(envPath)) Env.Load(envPath);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
-    var host = Environment.GetEnvironmentVariable("SQL_SERVER_HOST") ?? "localhost";
-    var port = Environment.GetEnvironmentVariable("SQL_SERVER_PORT") ?? "1433";
-    var db   = Environment.GetEnvironmentVariable("SQL_SERVER_DB");
-    var pass = Environment.GetEnvironmentVariable("SQL_SERVER_PASSWORD");
-    connectionString = $"Server={host},{port};Database={db};User Id=sa;Password={pass};TrustServerCertificate=True";
+    var host = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "localhost";
+    var port = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5432";
+    var db   = Environment.GetEnvironmentVariable("POSTGRES_DB") ?? "finhomedb";
+    var user = Environment.GetEnvironmentVariable("POSTGRES_USER") ?? "postgres";
+    var pass = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD");
+    connectionString = $"Host={host};Port={port};Database={db};Username={user};Password={pass}";
 }
 
 builder.Services.AddDbContext<AppDbContext>(o =>
 {
-    o.UseSqlServer(connectionString);
+    o.UseNpgsql(connectionString);
     // Enable sensitive data logging only in development to aid debugging
     if (builder.Environment.IsDevelopment())
         o.EnableSensitiveDataLogging().LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Information);
@@ -69,11 +70,8 @@ app.UseMiddleware<FinHome.Api.Middleware.GlobalExceptionMiddleware>();
 
 app.UseCors("AllowAll");
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.MapControllers();
 app.Run();

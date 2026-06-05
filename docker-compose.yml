@@ -1,17 +1,22 @@
 version: '3.8'
 
 services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+  postgres:
+    image: postgres:15-alpine
     container_name: finhome-db
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${SQL_SERVER_PASSWORD}
-      MSSQL_PID: Express
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "1433:1433"
+      - "5432:5432"
     volumes:
-      - sqldata:/var/opt/mssql
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   api:
     build:
@@ -19,27 +24,29 @@ services:
       dockerfile: Dockerfile
     container_name: finhome-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - SQL_SERVER_HOST=sqlserver
-      - SQL_SERVER_PORT=1433
-      - SQL_SERVER_DB=${SQL_SERVER_DB}
-      - SQL_SERVER_PASSWORD=${SQL_SERVER_PASSWORD}
+      - ASPNETCORE_ENVIRONMENT=Production
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5000:8080"
     depends_on:
-      - sqlserver
+      postgres:
+        condition: service_healthy
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: finhome-frontend
+    environment:
+      - API_URL=http://api:8080
     ports:
-      - "3000:5173"
-    volumes:
-      - ./frontend/src:/app/src
+      - "3000:3000"
     depends_on:
       - api
 
 volumes:
-  sqldata:
+  pgdata:

@@ -3,45 +3,46 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Testcontainers.MsSql;
+using Testcontainers.PostgreSql;
 
 namespace FinHome.IntegrationTests;
 
 public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly MsSqlContainer _sqlServer = new MsSqlBuilder()
-        .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
+        .WithImage("postgres:15-alpine")
+        .WithDatabase("finhome_test")
+        .WithUsername("postgres")
         .WithPassword("FinhomeTest@123")
         .Build();
 
     public async Task InitializeAsync()
     {
-        await _sqlServer.StartAsync();
+        await _postgres.StartAsync();
+
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(_postgres.GetConnectionString())
+            .Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.MigrateAsync();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
         {
-            // Remove the existing DbContext registration
             var descriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
             if (descriptor is not null)
                 services.Remove(descriptor);
 
-            // Register DbContext pointing to the Testcontainer SQL Server
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(_sqlServer.GetConnectionString()));
-
-            // Apply migrations automatically before tests run
-            using var scope = services.BuildServiceProvider().CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.Migrate();
+                options.UseNpgsql(_postgres.GetConnectionString()));
         });
     }
 
     public new async Task DisposeAsync()
     {
-        await _sqlServer.DisposeAsync();
+        await _postgres.DisposeAsync();
     }
 }
