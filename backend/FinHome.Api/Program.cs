@@ -8,6 +8,10 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
+// Npgsql 6+ maps DateTime to "timestamp with time zone" and rejects DateTimeKind.Unspecified.
+// This switch restores the pre-6 behavior so plain DateTime values from API clients work as-is.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Load .env file when running outside of a container that already injects secrets

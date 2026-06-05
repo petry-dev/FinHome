@@ -10,7 +10,7 @@ Three services defined in `docker-compose.yml`:
 
 | Service | Image | Port |
 |---|---|---|
-| `db` | `mcr.microsoft.com/mssql/server:2022-latest` | 1433 |
+| `db` | `postgres:16-alpine` | 5432 |
 | `api` | `./backend/Dockerfile` | 5000 |
 | `frontend` | `./frontend/Dockerfile` (Nginx) | 3000 |
 
@@ -20,80 +20,47 @@ The API runs `MigrateAsync()` on startup so the database schema is always up-to-
 
 ## Proposed AWS topology
 
-```mermaid
-graph TD
-    User["User (browser)"]
-    CF["CloudFront CDN\n(HTTPS termination)"]
-    S3["S3 Bucket\n(React SPA static files)"]
-    ALB["Application Load Balancer\n(HTTP → HTTPS redirect)"]
-    EC2["EC2 Auto Scaling Group\n(FinHome.Api — .NET 8)\nPrivate subnet"]
-    RDS["RDS SQL Server\n(Multi-AZ)\nPrivate subnet"]
-    Secrets["AWS Secrets Manager\n(DB credentials)"]
-
-    User -->|HTTPS| CF
-    CF -->|Origin: S3| S3
-    CF -->|Origin: /api/*| ALB
-    ALB --> EC2
-    EC2 -->|TCP 1433| RDS
-    EC2 -->|Fetch secret| Secrets
-```
-
-### Component rationale
-
 | Component | Role | Why |
 |---|---|---|
-| CloudFront | CDN + HTTPS | Serves static assets from S3 edge cache; routes `/api/*` to ALB |
+| CloudFront | CDN + HTTPS termination | Serves static assets from S3 edge cache; routes `/api/*` to ALB |
 | S3 | Static hosting | React build artifacts — zero server cost for frontend |
-| ALB | Load balancer | Routes traffic to EC2 instances; handles TLS termination for API |
-| EC2 Auto Scaling | API runtime | Horizontal scaling based on CPU/request metrics |
-| RDS SQL Server (Multi-AZ) | Database | Managed SQL Server with automatic failover, backups, patch management |
+| ALB | Load balancer | Routes traffic to EC2 instances; handles TLS termination for the API |
+| EC2 Auto Scaling | API runtime | Horizontal scaling based on CPU / request metrics |
+| RDS PostgreSQL (Multi-AZ) | Database | Managed PostgreSQL with automatic failover, backups, patch management |
 | Secrets Manager | Credentials | DB password injected at runtime; never stored in code or environment files |
+
+Traffic path: browser → CloudFront → (S3 for static assets) or (ALB → EC2 → RDS for API calls).
 
 ---
 
 ## CI/CD pipeline
 
-```mermaid
-sequenceDiagram
-    participant Dev as Developer
-    participant GH as GitHub
-    participant CI as GitHub Actions
-    participant ECR as ECR / S3
-    participant AWS as AWS (EC2 + RDS)
+On every push or pull request to `main`, GitHub Actions runs two parallel jobs:
 
-    Dev->>GH: git push to main (or open PR)
-    GH->>CI: Trigger workflow
+**Backend job**
+1. `dotnet restore` + `dotnet build`
+2. `dotnet test FinHome.UnitTests`
+3. `dotnet test FinHome.IntegrationTests` (Testcontainers — real PostgreSQL container)
 
-    par Backend job
-        CI->>CI: dotnet restore + build
-        CI->>CI: dotnet test FinHome.UnitTests
-        CI->>CI: dotnet test FinHome.IntegrationTests (Testcontainers)
-    and Frontend job
-        CI->>CI: npm ci
-        CI->>CI: npm run build
-    end
+**Frontend job**
+1. `npm ci`
+2. `npm run build`
 
-    alt All jobs pass
-        CI->>ECR: Push Docker image (API)
-        CI->>S3: Sync frontend build artifacts
-        CI->>AWS: Rolling update (EC2 launch template → new AMI or ECS task)
-        CI->>AWS: RDS migration runs via API startup MigrateAsync()
-    else Any job fails
-        CI->>GH: Block merge / notify developer
-    end
-```
+If all jobs pass, the deploy stage:
+1. Builds and pushes the API Docker image to ECR.
+2. Syncs the frontend build output to S3 (`aws s3 sync --delete`).
+3. Triggers a rolling EC2 update via Auto Scaling launch template.
+4. Database migrations run automatically via `MigrateAsync()` on API startup.
 
-### Deploy flow
+If any job fails, the merge is blocked and the developer is notified.
 
-1. **Backend** — Docker image built and pushed to ECR. EC2 Auto Scaling Group performs a rolling replacement using the new image.
-2. **Frontend** — `npm run build` output synced to S3 with `aws s3 sync --delete`. CloudFront invalidation flushes the CDN cache.
-3. **Database migrations** — `MigrateAsync()` on API startup applies pending migrations. No manual migration steps.
+---
 
 ### Rollback
 
-- API: redeploy previous ECR image tag via Auto Scaling launch template.
-- Frontend: restore previous S3 objects from versioned bucket.
-- Database: EF Core migrations are additive by convention; destructive changes require a manual rollback migration.
+- **API** — redeploy previous ECR image tag via Auto Scaling launch template.
+- **Frontend** — restore previous S3 objects from versioned bucket.
+- **Database** — EF Core migrations are additive by convention; destructive changes require a manual rollback migration.
 
 ---
 
@@ -101,9 +68,10 @@ sequenceDiagram
 
 | Variable | Used by | Description |
 |---|---|---|
-| `SQL_SERVER_HOST` | API | DB hostname |
-| `SQL_SERVER_PORT` | API | DB port (default 1433) |
-| `SQL_SERVER_DB` | API | Database name |
-| `SQL_SERVER_PASSWORD` | API | SA password — injected from Secrets Manager in AWS |
+| `POSTGRES_HOST` | API | DB hostname |
+| `POSTGRES_PORT` | API | DB port (default 5432) |
+| `POSTGRES_DB` | API | Database name |
+| `POSTGRES_USER` | API | DB username (default `postgres`) |
+| `POSTGRES_PASSWORD` | API | DB password — injected from Secrets Manager in AWS |
 
 Local development uses `.env` (git-ignored). Production uses AWS Secrets Manager + EC2 instance profile.

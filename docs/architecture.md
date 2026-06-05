@@ -17,142 +17,40 @@ Each arrow means "depends on." No layer may reference a layer to its right. Doma
 
 ---
 
-## C4 — Context
+## System overview
 
-```mermaid
-C4Context
-    title FinHome — System Context
+The system is composed of three runtime components:
 
-    Person(user, "Household member", "Registers and reviews household expenses and income")
-    System(finhome, "FinHome", "Web application for household financial control")
-    SystemDb(db, "SQL Server", "Stores people, categories and transactions")
+| Component | Technology | Role |
+|---|---|---|
+| React SPA | React 18 + TypeScript + Vite, served by Nginx | Client — all UI, calls the REST API |
+| REST API | .NET 8 / ASP.NET Core | Business rules, validation, persistence |
+| PostgreSQL 16 | Relational database | Stores people, categories, transactions |
 
-    Rel(user, finhome, "Uses", "HTTPS")
-    Rel(finhome, db, "Reads and writes", "TCP/1433")
-```
+The SPA communicates with the API over HTTP (port 5000). The API communicates with the database over TCP (port 5432). There is no direct browser-to-database path.
 
 ---
 
-## C4 — Container
+## API layer components
 
-```mermaid
-C4Container
-    title FinHome — Containers
-
-    Person(user, "Household member")
-
-    Container(spa, "React SPA", "React 18 + TypeScript + Vite", "Single-page app served by Nginx")
-    Container(api, "REST API", ".NET 8 / ASP.NET Core", "HTTP API — business rules, validation, persistence")
-    ContainerDb(db, "SQL Server 2022", "Relational DB", "People, Categories, Transactions")
-
-    Rel(user, spa, "Opens", "HTTPS :3000")
-    Rel(spa, api, "Calls", "HTTP + JSON :5000")
-    Rel(api, db, "Reads / writes via EF Core", "TCP :1433")
-```
+| Component | Type | Role |
+|---|---|---|
+| `GlobalExceptionMiddleware` | ASP.NET Middleware | Catches unhandled exceptions, returns RFC 7807 Problem Details |
+| Controllers | `ApiController` | `PeopleController`, `CategoriesController`, `TransactionsController`, `ReportsController` |
+| `ResultExtensions` | Static class | Maps `Result<T>` to `IActionResult` (200 / 201 / 204 / 404 / 422) |
+| `Program.cs` | Composition root | Registers MediatR, FluentValidation, EF Core, repositories |
 
 ---
 
-## C4 — Component (API layer)
+## Request flow — create transaction
 
-```mermaid
-C4Component
-    title FinHome.Api — Components
-
-    Container_Boundary(api, "FinHome.Api") {
-        Component(mw, "GlobalExceptionMiddleware", "ASP.NET Middleware", "Catches unhandled exceptions, returns RFC 7807 Problem Details")
-        Component(ctrl, "Controllers", "ApiController", "PeopleController, CategoriesController, TransactionsController, ReportsController")
-        Component(ext, "ResultExtensions", "Static class", "Maps Result<T> to IActionResult (200/201/204/404/422)")
-        Component(di, "Program.cs", "Composition root", "Registers MediatR, FluentValidation, EF Core, repositories")
-    }
-
-    Container(app, "FinHome.Application", "MediatR handlers, validators")
-    Container_Ext(client, "React SPA")
-
-    Rel(client, mw, "HTTP request")
-    Rel(mw, ctrl, "Passes request")
-    Rel(ctrl, app, "IMediator.Send(command/query)")
-    Rel(ctrl, ext, "result.ToActionResult(this)")
-```
-
----
-
-## Sequence — Create transaction (happy path + business rule violation)
-
-```mermaid
-sequenceDiagram
-    actor Client as React SPA
-    participant Ctrl as TransactionsController
-    participant VB as ValidationBehavior
-    participant H as CreateTransactionCommandHandler
-    participant DB as SQL Server
-
-    Client->>Ctrl: POST /api/transactions
-    Ctrl->>VB: IMediator.Send(CreateTransactionCommand)
-    VB->>VB: FluentValidation (amount > 0, description ≤ 400)
-    alt validation fails
-        VB-->>Ctrl: throws ValidationException
-        Ctrl-->>Client: 400 Bad Request (Problem Details)
-    end
-    VB->>H: passes command
-    H->>DB: SELECT person WHERE id = PersonId
-    DB-->>H: Person
-    H->>DB: SELECT category WHERE id = CategoryId
-    DB-->>H: Category
-    alt person.Age < 18 AND type == Income
-        H-->>Ctrl: Result.Failure("People under 18 cannot register income")
-        Ctrl-->>Client: 422 Unprocessable Entity (Problem Details)
-    else type incompatible with category.Purpose
-        H-->>Ctrl: Result.Failure("Type/purpose mismatch")
-        Ctrl-->>Client: 422 Unprocessable Entity (Problem Details)
-    end
-    H->>DB: INSERT transaction
-    DB-->>H: transaction.Id
-    H-->>Ctrl: Result.Success(TransactionDto)
-    Ctrl-->>Client: 201 Created + TransactionDto
-```
-
----
-
-## Sequence — JWT authentication (proposed future feature)
-
-The current system has no authentication. The diagram below shows the **proposed JWT flow** planned for a future iteration.
-
-```mermaid
-sequenceDiagram
-    actor User as Household member
-    participant SPA as React SPA
-    participant Auth as Auth endpoint
-    participant Guard as JWT middleware
-    participant API as Protected endpoint
-    participant DB as SQL Server
-
-    User->>SPA: Enter email + password
-    SPA->>Auth: POST /api/auth/login {email, password}
-    Auth->>DB: SELECT user WHERE email = ?
-    DB-->>Auth: UserRecord (hashed password)
-    Auth->>Auth: Verify bcrypt hash
-    alt credentials invalid
-        Auth-->>SPA: 401 Unauthorized
-        SPA-->>User: Show error message
-    end
-    Auth->>Auth: Sign JWT (sub, email, exp: +15 min)
-    Auth->>Auth: Issue refresh token (exp: +7 days, stored in DB)
-    Auth-->>SPA: { accessToken, refreshToken }
-    SPA->>SPA: Store accessToken in memory, refreshToken in httpOnly cookie
-
-    User->>SPA: Navigate to Transactions
-    SPA->>Guard: GET /api/transactions (Authorization: Bearer <token>)
-    Guard->>Guard: Validate JWT signature + expiry
-    alt token expired
-        Guard-->>SPA: 401 Unauthorized
-        SPA->>Auth: POST /api/auth/refresh (cookie: refreshToken)
-        Auth->>DB: Validate + rotate refresh token
-        Auth-->>SPA: new accessToken
-        SPA->>Guard: Retry GET /api/transactions
-    end
-    Guard->>API: Passes request with claims
-    API->>DB: Query (scoped to userId from claims)
-    DB-->>API: Results
-    API-->>SPA: 200 OK + data
-    SPA-->>User: Render transactions table
-```
+1. React SPA sends `POST /api/transactions` with a JSON body.
+2. `GlobalExceptionMiddleware` wraps the pipeline.
+3. Controller deserialises the request and calls `IMediator.Send(CreateTransactionCommand)`.
+4. `ValidationBehavior` runs FluentValidation (amount > 0, description ≤ 400 chars). Returns `400 Bad Request` on failure.
+5. `CreateTransactionCommandHandler` loads the person and category from the database.
+6. Domain rules are evaluated:
+   - If person age < 18 and type is Income → `Result.Failure` → `422 Unprocessable Entity`.
+   - If transaction type is incompatible with category purpose → `Result.Failure` → `422 Unprocessable Entity`.
+7. On success, the transaction is inserted and the handler returns `Result.Success(TransactionDto)`.
+8. Controller maps the result to `201 Created` with the created DTO.

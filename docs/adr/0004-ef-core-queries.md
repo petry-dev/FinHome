@@ -24,7 +24,7 @@ var items = await _repo.Query()
     .ToListAsync(ct);
 ```
 
-Report queries use `Sum()` inside `Select()` so SQL Server computes the aggregation — no rows are hydrated into memory.
+Report queries use `Sum()` inside `Select()` so PostgreSQL computes the aggregation — no rows are hydrated into memory.
 
 ### 3. `ExecuteDeleteAsync()` for single-entity deletes
 
@@ -40,7 +40,7 @@ Schema configuration (column types, max lengths, indexes, FK cascade behavior) l
 
 ### 6. `HasPrecision(18, 2)` on `Amount`
 
-Prevents SQL Server from defaulting to `decimal(18, 0)`, which would truncate cents.
+Prevents the database from defaulting to `decimal(18, 0)`, which would truncate cents.
 
 ## Consequences
 
