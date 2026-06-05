@@ -43,11 +43,11 @@ export function MainLayout({ children }: Props) {
     <div className="fh-shell">
       {/* Sidebar */}
       <aside className="fh-sidebar">
-        <div style={{ padding: '4px 10px 24px', display: 'flex', alignItems: 'center' }}>
+        <div style={{ padding: '16px 10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Image
             src={logo}
             alt="FinHome"
-            style={{ height: 30, width: 'auto', filter: 'brightness(0) invert(1)' }}
+            style={{ height: 56, width: 'auto', filter: 'brightness(0) invert(1)' }}
           />
         </div>
 

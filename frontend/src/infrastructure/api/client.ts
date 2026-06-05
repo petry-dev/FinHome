@@ -1,10 +1,10 @@
 import axios from 'axios'
 
-// Dev/tests: NEXT_PUBLIC_API_URL=http://localhost:5000 → absolute URL, MSW can intercept.
-// Docker (no NEXT_PUBLIC_API_URL set at build time): falls back to '/api' → Next.js rewrites
-// proxy the request to API_URL on the server side (see next.config.ts).
+// Tests (vitest.config.ts injects NEXT_PUBLIC_API_URL): absolute URL so MSW can intercept.
+// Dev / Docker / prod (NEXT_PUBLIC_API_URL not set at build): relative /api/proxy → Next.js
+// API route (src/app/api/proxy/[...path]/route.ts) forwards to API_URL at request time.
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? '/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? '/api/proxy',
 })
 
 interface ProblemDetails {
