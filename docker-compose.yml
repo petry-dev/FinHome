@@ -42,9 +42,7 @@ services:
       dockerfile: Dockerfile
     container_name: finhome-frontend
     ports:
-      - "3000:5173"
-    volumes:
-      - ./frontend/src:/app/src
+      - "3000:80"
     depends_on:
       - api
 
