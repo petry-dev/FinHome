@@ -2,13 +2,13 @@ name: CI
 
 on:
   push:
-    branches: ["main", "develop"]
+    branches: ["main"]
   pull_request:
     branches: ["main"]
 
 jobs:
   build-and-test:
-    name: Build & Test (.NET)
+    name: Build & Test (.NET 8)
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +30,6 @@ jobs:
 
       - name: Run integration tests
         run: dotnet test backend/FinHome.IntegrationTests --no-build --configuration Release --verbosity normal
-        continue-on-error: false
 
   build-frontend:
     name: Build (React/TypeScript)

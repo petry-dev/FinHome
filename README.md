@@ -1,5 +1,7 @@
 # FinHome
 
+[![CI](https://github.com/petry-dev/FinHome/actions/workflows/ci.yml/badge.svg)](https://github.com/petry-dev/FinHome/actions/workflows/ci.yml)
+
 Household financial management system — track income and expenses by person and category.
 
 Built as a portfolio project to demonstrate senior-level .NET 8 + React patterns: Clean Architecture, CQRS + MediatR, Result pattern, RFC 7807 Problem Details, server-side pagination, and Testcontainers integration tests.
