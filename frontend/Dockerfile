@@ -2,10 +2,12 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
 
-EXPOSE 5173
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+EXPOSE 3000
+CMD ["npm", "start"]
