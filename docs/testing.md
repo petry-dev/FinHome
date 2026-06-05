@@ -2,19 +2,11 @@
 
 ## Test pyramid
 
-```
-         ┌──────────────────┐
-         │  E2E (PowerShell │  1 script, 36 scenarios
-         │  e2e-test.ps1)   │  against live stack
-         ├──────────────────┤
-         │  Integration     │  16 tests
-         │  (Testcontainers │  real SQL Server, no mocks
-         │   + WebAppFactory│
-         ├──────────────────┤
-         │    Unit tests    │  68 tests
-         │ (pure C#, no I/O)│  handlers + validators
-         └──────────────────┘
-```
+| Level | Project | Count | Infrastructure |
+|---|---|---|---|
+| Unit | `FinHome.UnitTests` | 68 tests | Pure C#, no I/O, handlers mocked with Moq |
+| Integration | `FinHome.IntegrationTests` | 16 tests | Real SQL Server via Testcontainers + WebApplicationFactory |
+| End-to-end | `e2e-test.ps1` | 36 scenarios | Full running stack (API + database) |
 
 ---
 
@@ -116,7 +108,7 @@ CI runs both on every push and pull request to `main` (see `.github/workflows/ci
 
 ---
 
-## What is NOT tested (known gaps)
+## Known gaps
 
 - Frontend components (no Vitest/Testing Library setup yet)
 - Report query correctness for complex multi-person/multi-category scenarios beyond the integration smoke test

@@ -1,50 +1,61 @@
 # Data Model
 
-## Entity-Relationship diagram
+## Entities
 
-```mermaid
-erDiagram
-    Person {
-        int     Id          PK
-        string  Name        "max 200 chars, required"
-        int     Age         "positive integer, required"
-    }
+**Person**
 
-    Category {
-        int         Id          PK
-        string      Name        "max 200 chars, required"
-        PurposeType Purpose     "Expense=0 | Income=1 | Both=2"
-    }
-
-    Transaction {
-        int             Id              PK
-        string          Description     "max 400 chars, required"
-        decimal         Amount          "precision(18,2), > 0"
-        datetime        Date
-        TransactionType Type            "Expense=0 | Income=1"
-        int             PersonId        FK
-        int             CategoryId      FK
-    }
-
-    Person   ||--o{ Transaction : "has (cascade delete)"
-    Category ||--o{ Transaction : "classifies (cascade delete)"
-```
-
-## Column notes
-
-| Column | Constraint | Enforcement |
+| Column | Type | Constraint |
 |---|---|---|
-| `Person.Name` | ≤ 200 chars, not null | `IEntityTypeConfiguration` + FluentValidation |
-| `Person.Age` | > 0 | FluentValidation |
-| `Category.Name` | ≤ 200 chars, not null | `IEntityTypeConfiguration` + FluentValidation |
-| `Category.Purpose` | Enum (0/1/2) | Domain enum |
-| `Transaction.Description` | ≤ 400 chars, not null | `IEntityTypeConfiguration` + FluentValidation |
-| `Transaction.Amount` | `decimal(18,2)`, > 0 | `HasPrecision(18,2)` + FluentValidation |
-| `Transaction.Type` | Enum (0/1) | Domain enum |
+| `Id` | `int` | PK, auto-increment |
+| `Name` | `string` | Not null, max 200 chars |
+| `Age` | `int` | Positive integer, required |
 
-## Cascade behaviour
+**Category**
 
-Both FK relationships use `DeleteBehavior.Cascade` declared explicitly in `IEntityTypeConfiguration<Transaction>`. Deleting a `Person` or a `Category` removes all linked `Transaction` rows in a single database operation.
+| Column | Type | Constraint |
+|---|---|---|
+| `Id` | `int` | PK, auto-increment |
+| `Name` | `string` | Not null, max 200 chars |
+| `Purpose` | `PurposeType` | Enum — `Expense = 0`, `Income = 1`, `Both = 2` |
+
+**Transaction**
+
+| Column | Type | Constraint |
+|---|---|---|
+| `Id` | `int` | PK, auto-increment |
+| `Description` | `string` | Not null, max 400 chars |
+| `Amount` | `decimal(18,2)` | > 0 |
+| `Date` | `datetime` | Required |
+| `Type` | `TransactionType` | Enum — `Expense = 0`, `Income = 1` |
+| `PersonId` | `int` | FK → `Person.Id` |
+| `CategoryId` | `int` | FK → `Category.Id` |
+
+---
+
+## Relationships
+
+| Relationship | Cardinality | Delete behaviour |
+|---|---|---|
+| Person → Transaction | One-to-many | Cascade — deleting a person removes all their transactions |
+| Category → Transaction | One-to-many | Cascade — deleting a category removes all linked transactions |
+
+Both cascade rules are declared explicitly in `IEntityTypeConfiguration<Transaction>` using `DeleteBehavior.Cascade`. No implicit EF Core conventions relied upon.
+
+---
+
+## Constraint enforcement
+
+| Constraint | Where enforced |
+|---|---|
+| `Person.Name` ≤ 200 chars, not null | `IEntityTypeConfiguration` + FluentValidation |
+| `Person.Age` > 0 | FluentValidation |
+| `Category.Name` ≤ 200 chars, not null | `IEntityTypeConfiguration` + FluentValidation |
+| `Category.Purpose` valid enum | Domain enum |
+| `Transaction.Description` ≤ 400 chars, not null | `IEntityTypeConfiguration` + FluentValidation |
+| `Transaction.Amount` decimal(18,2), > 0 | `HasPrecision(18,2)` + FluentValidation |
+| `Transaction.Type` valid enum | Domain enum |
+
+---
 
 ## Indexes
 
