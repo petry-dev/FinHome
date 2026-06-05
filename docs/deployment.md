@@ -10,7 +10,7 @@ Three services defined in `docker-compose.yml`:
 
 | Service | Image | Port |
 |---|---|---|
-| `db` | `mcr.microsoft.com/mssql/server:2022-latest` | 1433 |
+| `db` | `postgres:16-alpine` | 5432 |
 | `api` | `./backend/Dockerfile` | 5000 |
 | `frontend` | `./frontend/Dockerfile` (Nginx) | 3000 |
 
@@ -27,7 +27,7 @@ graph TD
     S3["S3 Bucket\n(React SPA static files)"]
     ALB["Application Load Balancer\n(HTTP → HTTPS redirect)"]
     EC2["EC2 Auto Scaling Group\n(FinHome.Api — .NET 8)\nPrivate subnet"]
-    RDS["RDS SQL Server\n(Multi-AZ)\nPrivate subnet"]
+    RDS["RDS PostgreSQL\n(Multi-AZ)\nPrivate subnet"]
     Secrets["AWS Secrets Manager\n(DB credentials)"]
 
     User -->|HTTPS| CF
@@ -46,7 +46,7 @@ graph TD
 | S3 | Static hosting | React build artifacts — zero server cost for frontend |
 | ALB | Load balancer | Routes traffic to EC2 instances; handles TLS termination for API |
 | EC2 Auto Scaling | API runtime | Horizontal scaling based on CPU/request metrics |
-| RDS SQL Server (Multi-AZ) | Database | Managed SQL Server with automatic failover, backups, patch management |
+| RDS PostgreSQL (Multi-AZ) | Database | Managed PostgreSQL with automatic failover, backups, patch management |
 | Secrets Manager | Credentials | DB password injected at runtime; never stored in code or environment files |
 
 ---
@@ -101,9 +101,10 @@ sequenceDiagram
 
 | Variable | Used by | Description |
 |---|---|---|
-| `SQL_SERVER_HOST` | API | DB hostname |
-| `SQL_SERVER_PORT` | API | DB port (default 1433) |
-| `SQL_SERVER_DB` | API | Database name |
-| `SQL_SERVER_PASSWORD` | API | SA password — injected from Secrets Manager in AWS |
+| `POSTGRES_HOST` | API | DB hostname |
+| `POSTGRES_PORT` | API | DB port (default 5432) |
+| `POSTGRES_DB` | API | Database name |
+| `POSTGRES_USER` | API | DB username (default `postgres`) |
+| `POSTGRES_PASSWORD` | API | DB password — injected from Secrets Manager in AWS |
 
 Local development uses `.env` (git-ignored). Production uses AWS Secrets Manager + EC2 instance profile.
