@@ -74,11 +74,8 @@ app.UseMiddleware<FinHome.Api.Middleware.GlobalExceptionMiddleware>();
 
 app.UseCors("AllowAll");
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.MapControllers();
 app.Run();
