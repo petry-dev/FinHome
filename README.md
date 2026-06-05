@@ -65,18 +65,6 @@ npm run test:e2e:ui     # Playwright UI mode
 
 ---
 
-## Docs
+## API
 
-| Document | Description |
-|---|---|
-| [Architecture](docs/architecture.md) | C4 diagrams, layer dependency rule, sequence diagrams |
-| [Data model](docs/data-model.md) | Entity-relationship diagram, indexes, cascade behaviour |
-| [API reference](docs/api.md) | All endpoints with request/response examples |
-| [Testing strategy](docs/testing.md) | Test pyramid, coverage areas, how to run |
-| [Deployment](docs/deployment.md) | Proposed AWS topology, CI/CD pipeline |
-| **ADRs** | |
-| [0001 — Clean Architecture](docs/adr/0001-clean-architecture.md) | Why four projects instead of a flat structure |
-| [0002 — Result pattern](docs/adr/0002-result-pattern.md) | Why `Result<T>` instead of exceptions for business rules |
-| [0003 — Problem Details](docs/adr/0003-problem-details.md) | Why RFC 7807 for all error responses |
-| [0004 — EF Core queries](docs/adr/0004-ef-core-queries.md) | AsNoTracking, IQueryable projection, ExecuteDeleteAsync |
-| [0005 — Pagination](docs/adr/0005-pagination.md) | Server-side offset pagination with `PaginatedList<T>` |
+Interactive docs available at `http://localhost:5000/swagger` once the stack is running.
