@@ -6,29 +6,29 @@
 
 | Column | Type | Constraint |
 |---|---|---|
-| `Id` | `int` | PK, auto-increment |
-| `Name` | `string` | Not null, max 200 chars |
-| `Age` | `int` | Positive integer, required |
+| `Id` | `integer` | PK, auto-increment |
+| `Name` | `varchar(200)` | Not null, max 200 chars |
+| `Age` | `integer` | Positive integer, required |
 
 **Category**
 
 | Column | Type | Constraint |
 |---|---|---|
-| `Id` | `int` | PK, auto-increment |
-| `Name` | `string` | Not null, max 200 chars |
-| `Purpose` | `PurposeType` | Enum — `Expense = 0`, `Income = 1`, `Both = 2` |
+| `Id` | `integer` | PK, auto-increment |
+| `Name` | `varchar(200)` | Not null, max 200 chars |
+| `Purpose` | `integer` | Enum — `Expense = 0`, `Income = 1`, `Both = 2` |
 
 **Transaction**
 
 | Column | Type | Constraint |
 |---|---|---|
-| `Id` | `int` | PK, auto-increment |
-| `Description` | `string` | Not null, max 400 chars |
-| `Amount` | `decimal(18,2)` | > 0 |
-| `Date` | `datetime` | Required |
-| `Type` | `TransactionType` | Enum — `Expense = 0`, `Income = 1` |
-| `PersonId` | `int` | FK → `Person.Id` |
-| `CategoryId` | `int` | FK → `Category.Id` |
+| `Id` | `integer` | PK, auto-increment |
+| `Description` | `varchar(400)` | Not null, max 400 chars |
+| `Amount` | `numeric(18,2)` | > 0 |
+| `Date` | `timestamp` | Required |
+| `Type` | `integer` | Enum — `Expense = 0`, `Income = 1` |
+| `PersonId` | `integer` | FK → `Person.Id` |
+| `CategoryId` | `integer` | FK → `Category.Id` |
 
 ---
 
@@ -52,7 +52,7 @@ Both cascade rules are declared explicitly in `IEntityTypeConfiguration<Transact
 | `Category.Name` ≤ 200 chars, not null | `IEntityTypeConfiguration` + FluentValidation |
 | `Category.Purpose` valid enum | Domain enum |
 | `Transaction.Description` ≤ 400 chars, not null | `IEntityTypeConfiguration` + FluentValidation |
-| `Transaction.Amount` decimal(18,2), > 0 | `HasPrecision(18,2)` + FluentValidation |
+| `Transaction.Amount` numeric(18,2), > 0 | `HasPrecision(18,2)` + FluentValidation |
 | `Transaction.Type` valid enum | Domain enum |
 
 ---

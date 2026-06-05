@@ -24,7 +24,7 @@ public record PaginatedList<T>(
 }
 ```
 
-Clients pass `page` and `pageSize` as query parameters (defaults: `page=1`, `pageSize=20`). The handler applies `Skip((page - 1) * pageSize).Take(pageSize)` before materializing, so SQL Server uses `OFFSET / FETCH NEXT`.
+Clients pass `page` and `pageSize` as query parameters (defaults: `page=1`, `pageSize=20`). The handler applies `Skip((page - 1) * pageSize).Take(pageSize)` before materializing, so PostgreSQL uses `LIMIT / OFFSET`.
 
 `PaginationParams` is a shared record in `FinHome.Application.Common` used across all list queries.
 

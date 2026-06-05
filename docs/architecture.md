@@ -25,9 +25,9 @@ The system is composed of three runtime components:
 |---|---|---|
 | React SPA | React 18 + TypeScript + Vite, served by Nginx | Client — all UI, calls the REST API |
 | REST API | .NET 8 / ASP.NET Core | Business rules, validation, persistence |
-| SQL Server 2022 | Relational database | Stores people, categories, transactions |
+| PostgreSQL 16 | Relational database | Stores people, categories, transactions |
 
-The SPA communicates with the API over HTTP (port 5000). The API communicates with the database over TCP (port 1433). There is no direct browser-to-database path.
+The SPA communicates with the API over HTTP (port 5000). The API communicates with the database over TCP (port 5432). There is no direct browser-to-database path.
 
 ---
 

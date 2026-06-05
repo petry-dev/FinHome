@@ -10,7 +10,7 @@ Three services defined in `docker-compose.yml`:
 
 | Service | Image | Port |
 |---|---|---|
-| `db` | `mcr.microsoft.com/mssql/server:2022-latest` | 1433 |
+| `db` | `postgres:16-alpine` | 5432 |
 | `api` | `./backend/Dockerfile` | 5000 |
 | `frontend` | `./frontend/Dockerfile` (Nginx) | 3000 |
 
@@ -26,7 +26,7 @@ The API runs `MigrateAsync()` on startup so the database schema is always up-to-
 | S3 | Static hosting | React build artifacts — zero server cost for frontend |
 | ALB | Load balancer | Routes traffic to EC2 instances; handles TLS termination for the API |
 | EC2 Auto Scaling | API runtime | Horizontal scaling based on CPU / request metrics |
-| RDS SQL Server (Multi-AZ) | Database | Managed SQL Server with automatic failover, backups, patch management |
+| RDS PostgreSQL (Multi-AZ) | Database | Managed PostgreSQL with automatic failover, backups, patch management |
 | Secrets Manager | Credentials | DB password injected at runtime; never stored in code or environment files |
 
 Traffic path: browser → CloudFront → (S3 for static assets) or (ALB → EC2 → RDS for API calls).
@@ -40,7 +40,7 @@ On every push or pull request to `main`, GitHub Actions runs two parallel jobs:
 **Backend job**
 1. `dotnet restore` + `dotnet build`
 2. `dotnet test FinHome.UnitTests`
-3. `dotnet test FinHome.IntegrationTests` (Testcontainers — real SQL Server container)
+3. `dotnet test FinHome.IntegrationTests` (Testcontainers — real PostgreSQL container)
 
 **Frontend job**
 1. `npm ci`
@@ -68,9 +68,10 @@ If any job fails, the merge is blocked and the developer is notified.
 
 | Variable | Used by | Description |
 |---|---|---|
-| `SQL_SERVER_HOST` | API | DB hostname |
-| `SQL_SERVER_PORT` | API | DB port (default 1433) |
-| `SQL_SERVER_DB` | API | Database name |
-| `SQL_SERVER_PASSWORD` | API | SA password — injected from Secrets Manager in AWS |
+| `POSTGRES_HOST` | API | DB hostname |
+| `POSTGRES_PORT` | API | DB port (default 5432) |
+| `POSTGRES_DB` | API | Database name |
+| `POSTGRES_USER` | API | DB username (default `postgres`) |
+| `POSTGRES_PASSWORD` | API | DB password — injected from Secrets Manager in AWS |
 
 Local development uses `.env` (git-ignored). Production uses AWS Secrets Manager + EC2 instance profile.

@@ -5,7 +5,7 @@
 | Level | Project | Count | Infrastructure |
 |---|---|---|---|
 | Unit | `FinHome.UnitTests` | 68 tests | Pure C#, no I/O, handlers mocked with Moq |
-| Integration | `FinHome.IntegrationTests` | 16 tests | Real SQL Server via Testcontainers + WebApplicationFactory |
+| Integration | `FinHome.IntegrationTests` | 16 tests | Real PostgreSQL via Testcontainers + WebApplicationFactory |
 | End-to-end | `e2e-test.ps1` | 36 scenarios | Full running stack (API + database) |
 
 ---
@@ -52,9 +52,9 @@ dotnet test FinHome.UnitTests
 
 ## Integration tests — `FinHome.IntegrationTests`
 
-**Scope:** Full HTTP request → controller → handler → real SQL Server → response. No behaviour is mocked.
+**Scope:** Full HTTP request → controller → handler → real PostgreSQL → response. No behaviour is mocked.
 
-**Infrastructure:** `Testcontainers` spins up a `mcr.microsoft.com/mssql/server:2022-latest` container per test class. `WebApplicationFactory<Program>` wires the API against that container's connection string. Each test class gets a clean database via `MigrateAsync()`.
+**Infrastructure:** `Testcontainers` spins up a `postgres:16-alpine` container per test class. `WebApplicationFactory<Program>` wires the API against that container's connection string. Each test class gets a clean database via `MigrateAsync()`.
 
 **Why no mock DB:** Mocking the database would validate handler logic but not EF Core configuration, migrations, cascade behaviour or index-driven query plans. A prior version of this project had mocked integration tests; they passed while the actual database was broken — the motivation for switching to Testcontainers.
 
@@ -70,7 +70,7 @@ dotnet test FinHome.UnitTests
 **How to run:**
 ```bash
 cd backend
-# Docker must be running — Testcontainers manages the SQL Server container automatically
+# Docker must be running — Testcontainers manages the PostgreSQL container automatically
 dotnet test FinHome.IntegrationTests
 ```
 
